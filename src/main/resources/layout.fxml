@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox fx:controller="com.caiocesarmds.documentconverter.controller.Controller" styleClass="container" alignment="CENTER" spacing="200"
+      prefHeight="400.0" prefWidth="600.0" stylesheets="@styles.css"
+      xmlns="http://javafx.com/javafx/22" xmlns:fx="http://javafx.com/fxml/1">
+
+    <VBox alignment="CENTER" spacing="10.0">
+        <Label text="Select Source File:"/>
+        <HBox alignment="CENTER" spacing="10.0">
+            <TextField fx:id="fileInput" prefWidth="300.0" promptText="select file..."/>
+            <Button text="Search" onAction="#searchFile"/>
+        </HBox>
+
+        <VBox alignment="CENTER" spacing="6">
+            <Label text="Select Destination Folder:"/>
+            <HBox alignment="CENTER" spacing="10.0">
+                <TextField fx:id="folderInput" prefWidth="300.0" promptText="select folder..."/>
+                <Button text="Search" onAction="#searchFolder"/>
+            </HBox>
+        </VBox>
+    </VBox>
+
+    <VBox alignment="CENTER" spacing="60">
+        <VBox alignment="CENTER" spacing="6">
+            <Label text="Select Output Format:"/>
+            <ComboBox fx:id="formats" prefWidth="250.0"/>
+        </VBox>
+
+    </VBox>
+
+    <Button text="Convert" onAction="#handleFileConversion"/>
+</VBox>

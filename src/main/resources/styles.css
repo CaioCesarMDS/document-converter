@@ -1,0 +1,65 @@
+* {
+    -fx-font-family: "Inter, sans-serif";
+    -primary-color: #30323D;
+    -secondary-color: #5C80BC;
+    -tertiary-color: #4D7CC7;
+    -gray: #ccc;
+}
+
+.container {
+    -fx-background-color: -primary-color;
+}
+
+.combo-box {
+    -fx-background-color: white;
+    -fx-border-color: -gray;
+    -fx-border-radius: 5px;
+    -fx-padding: 5px;
+    -fx-cursor: hand;
+    -fx-font-weight: bold;
+}
+
+.combo-box .list-cell:hover {
+    -fx-background-color: -gray;
+}
+
+
+.combo-box .list-cell {
+    -fx-background-color: white;
+    -fx-text-fill: -primary-color;
+    -fx-padding: 5px 10px;
+}
+
+.label {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.text-field {
+    -fx-border-radius: 5px;
+    -fx-padding: 10px;
+}
+
+.button {
+    -fx-background-color: -secondary-color;
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-padding: 10px 40px;
+    -fx-border-radius: 5px;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: -tertiary-color;
+}
+
+.popup-notification {
+    -fx-background-color: rgba(0, 0, 0, 0.75);
+    -fx-text-fill: white;
+    -fx-padding: 50px 100px;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-font-size: 14px;
+}
