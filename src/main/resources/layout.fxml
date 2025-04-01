@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
 
 <VBox fx:controller="com.caiocesarmds.documentconverter.controller.Controller" styleClass="container" alignment="CENTER" spacing="200"
       prefHeight="400.0" prefWidth="600.0" stylesheets="@styles.css"
@@ -28,7 +32,6 @@
             <Label text="Select Output Format:"/>
             <ComboBox fx:id="formats" prefWidth="250.0"/>
         </VBox>
-
     </VBox>
 
     <Button text="Convert" onAction="#handleFileConversion"/>
