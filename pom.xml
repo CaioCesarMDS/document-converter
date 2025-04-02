@@ -21,7 +21,7 @@
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.8</version>
                 <configuration>
-                    <mainClass>com.caiocesarmds.documentconverter.Main</mainClass>
+                    <mainClass>com.caiocesarmds.documentconverter.view.Main</mainClass>
                 </configuration>
             </plugin>
         </plugins>
@@ -58,6 +58,11 @@
             <version>5.4.0</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.24.3</version>
+        </dependency>
     </dependencies>
 
 </project>

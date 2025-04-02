@@ -28,7 +28,7 @@ public class PDFConverter {
                 BufferedImage bim = pdfRenderer.renderImageWithDPI(page, 400, ImageType.RGB);
 
                 String outputPath = directory.resolve(
-                        String.format("page_%03d.%s", page + 1, format)
+                        String.format(file.getName() + "_%03d.%s", page + 1, format)
                 ).toString();
 
                 if (!ImageIO.write(bim, format, new File(outputPath))) {
