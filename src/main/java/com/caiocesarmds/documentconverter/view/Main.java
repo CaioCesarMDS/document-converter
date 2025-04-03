@@ -32,9 +32,9 @@ public class Main extends Application {
 
             stage.show();
         } catch (IOException e) {
-            System.err.println("Error loading Document Converter: " + e.getMessage());
+            System.err.println("Error loading Document Converter: " + e);
         } catch (Exception e) {
-            System.err.println("Unexpected Error: " + e.getMessage());
+            System.err.println("Unexpected Error: " + e);
         }
     }
 

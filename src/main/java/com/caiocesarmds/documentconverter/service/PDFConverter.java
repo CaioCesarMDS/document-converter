@@ -16,24 +16,24 @@ import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.rendering.ImageType;
 
 public class PDFConverter {
-    public static void toImage(File file, Path directory, String format) throws ConversionFailedException {
-        if (!Files.exists(directory)) {
+    public static void toImage(File selectedFile, Path outputDirectoryPath, String selectedFormat) throws ConversionFailedException {
+        if (!Files.exists(outputDirectoryPath)) {
             throw new ConversionFailedException("Output directory does not exist");
         }
 
-        try (PDDocument document = Loader.loadPDF(file)) {
+        try (PDDocument document = Loader.loadPDF(selectedFile)) {
             PDFRenderer pdfRenderer = new PDFRenderer(document);
 
             for (int page = 0; page < document.getNumberOfPages(); ++page) {
                 BufferedImage bim = pdfRenderer.renderImageWithDPI(page, 400, ImageType.RGB);
 
-                String outputPath = directory.resolve(
-                        String.format(file.getName() + "_%03d.%s", page + 1, format)
+                String outputPath = outputDirectoryPath.resolve(
+                        String.format(selectedFile.getName() + "_%03d.%s", page + 1, selectedFormat)
                 ).toString();
 
-                if (!ImageIO.write(bim, format, new File(outputPath))) {
+                if (!ImageIO.write(bim, selectedFormat, new File(outputPath))) {
                     throw new ConversionFailedException(
-                            "Image format not available: " + format);
+                            "Image format not available: " + selectedFormat);
                 }
             }
         } catch (IOException e) {

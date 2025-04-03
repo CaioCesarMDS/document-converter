@@ -1,6 +1,6 @@
 package com.caiocesarmds.documentconverter.controller;
 
-import com.caiocesarmds.documentconverter.exceptions.FileNotSelectedException;
+import com.caiocesarmds.documentconverter.exceptions.PathSelectionException;
 import com.caiocesarmds.documentconverter.exceptions.InvalidFormatException;
 import com.caiocesarmds.documentconverter.exceptions.ConversionFailedException;
 
@@ -25,26 +25,34 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class Controller {
-    private Stage stage;
-    private File file;
-    private File directory;
     private static final Logger logger = LogManager.getLogger(Controller.class);
 
+    private Stage stage;
+    private File selectedFile;
+    private File outputDirectory;
+
+    private final Popup popup = new Popup();
+    private final Label popupLabel = new Label();
+
     @FXML
-    private ComboBox<String> formats;
+    private ComboBox<String> formatComboBox;
     @FXML
     private TextField fileInput;
     @FXML
-    private TextField folderInput;
+    private TextField directoryInput;
 
     public void initialize() {
         logger.info("Initializing Document Converter");
 
-        formats.getItems().addAll("PDF", "DOCX", "JPG", "PNG");
+        formatComboBox.getItems().addAll("PDF", "DOCX", "JPG", "PNG");
 
         String userHome = System.getProperty("user.home");
-        directory = new File(userHome, File.separator + "Downloads");
-        folderInput.setText(directory.toString());
+        outputDirectory = new File(userHome, File.separator + "Downloads");
+        directoryInput.setText(outputDirectory.toString());
+
+        popup.getContent().add(popupLabel);
+        popupLabel.getStyleClass().add("popup-notification");
+        popup.setAutoHide(true);
     }
 
     public void setStage(Stage stage) {
@@ -52,63 +60,40 @@ public class Controller {
     }
 
     @FXML
-    public void searchFile() {
+    public void selectFile() {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Select a file");
 
-        file = fileChooser.showOpenDialog(null);
+        selectedFile = fileChooser.showOpenDialog(stage);
 
-        if (file != null) {
-            fileInput.setText(file.getAbsolutePath());
-            return;
+        if (selectedFile != null) {
+            fileInput.setText(selectedFile.getAbsolutePath());
         }
-
-        logger.warn("No file selected");
-        showPopupNotification("File not found!", 2);
     }
 
     @FXML
-    public void searchFolder() {
+    public void selectOutputDirectory() {
         DirectoryChooser directoryChooser = new DirectoryChooser();
         directoryChooser.setTitle("Select a folder");
-        File selectedDirectory = directoryChooser.showDialog(null);
+        File selectedDirectory = directoryChooser.showDialog(stage);
 
         if (selectedDirectory != null) {
-            directory = selectedDirectory;
-            folderInput.setText(selectedDirectory.getAbsolutePath());
-            return;
+            outputDirectory = selectedDirectory;
+            directoryInput.setText(selectedDirectory.getAbsolutePath());
         }
-
-        logger.warn("No folder selected");
-        showPopupNotification("Folder not found!", 2);
     }
 
     @FXML
     public void handleFileConversion() {
         try {
-            if (file == null) {
-                throw new FileNotSelectedException("No file selected for conversion.");
-            }
+            String selectedFormat = getSelectedFormat();
+            String fileExtension = getExtension(selectedFile);
 
-            String format = formats.getSelectionModel().getSelectedItem();
+            validateInputs(selectedFormat, fileExtension);
 
-            if (format == null) {
-                throw new InvalidFormatException("No format selected for conversion.");
-            }
+            convertFile(selectedFile, outputDirectory.toPath(), selectedFormat, fileExtension);
 
-            String formatLower = format.toLowerCase();
-            String fileExtension = getExtension(file);
-
-            if (fileExtension.equals(formatLower)) {
-                logger.info("User tried to convert {} but it's already in the desired format.", file.getName());
-                showPopupNotification("You are already in the desired format!",
-                        2);
-                return;
-            }
-
-            convertFile(file, directory.toPath(), formatLower, fileExtension);
-
-        } catch (FileNotSelectedException | InvalidFormatException e) {
+        } catch (PathSelectionException | InvalidFormatException e) {
             logger.warn("User action error: {}", e.getMessage());
             showPopupNotification(e.getMessage(), 4);
         } catch (ConversionFailedException e) {
@@ -117,19 +102,19 @@ public class Controller {
         }
     }
 
-    private void convertFile(File file, Path directory, String format, String fileExtension) throws ConversionFailedException {
+    private void convertFile(File selectedFile, Path outputDirectoryPath, String selectedFormat, String fileExtension) throws ConversionFailedException {
         try {
             if (fileExtension.equals("pdf")) {
-                if (format.equals("png") || format.equals("jpg")) {
-                    PDFConverter.toImage(file, directory, format);
+                if (selectedFormat.equals("png") || selectedFormat.equals("jpg")) {
+                    PDFConverter.toImage(selectedFile, outputDirectoryPath, selectedFormat);
                     showPopupNotification("PDF converted successfully!", 2);
-                } else if (format.equals("docx")) {
-                    PDFConverter.toDocx(file, directory);
+                } else if (selectedFormat.equals("docx")) {
+                    PDFConverter.toDocx(selectedFile, outputDirectoryPath);
                 } else {
-                    logger.warn("Unsupported format: {}", format);
+                    logger.warn("Unsupported format: {}", selectedFormat);
                     showPopupNotification("File format not supported!", 2);
                 }
-            } else if (format.equals("docx")) {
+            } else if (selectedFormat.equals("docx")) {
                 // TODO
             }
 
@@ -139,37 +124,57 @@ public class Controller {
         }
     }
 
-    private String getExtension(File file) {
+    private String getSelectedFormat() throws InvalidFormatException {
+        String selectedFormat = formatComboBox.getSelectionModel().getSelectedItem();
+        if (selectedFormat == null) {
+            throw new InvalidFormatException("No format selected for conversion.");
+        }
+        return selectedFormat.toLowerCase();
+    }
+
+    private void validateInputs(String selectedFormat, String fileExtension) throws InvalidFormatException, PathSelectionException {
+        if (selectedFile == null) {
+            throw new PathSelectionException("No file selected for conversion.");
+        }
+
+        if (outputDirectory == null) {
+            throw new PathSelectionException("No directory selected for conversion.");
+        }
+
+        if (selectedFormat == null) {
+            throw new InvalidFormatException("No format selected for conversion.");
+        }
+
+        if (fileExtension.equals(selectedFormat)) {
+            logger.info("User tried to convert {} but it's already in the desired format.", selectedFile.getName());
+            throw new InvalidFormatException("The file is already in the desired format.");
+        }
+    }
+
+    private String getExtension(File file) throws InvalidFormatException {
         String fileName = file.getName();
 
         int lastIndex = fileName.lastIndexOf(".");
 
         if (lastIndex == -1) {
-            showPopupNotification("File format not supported!", 3);
-            return "";
+            throw new InvalidFormatException("Unsupported file format.");
         }
 
         return fileName.substring(lastIndex + 1);
     }
 
     private void showPopupNotification(String message, int seconds) {
-        Popup popup = new Popup();
-        Label popupMessage = new Label(message);
-        popup.getContent().add(popupMessage);
-
-        popupMessage.getStyleClass().add("popup-notification");
-        popup.setAutoHide(true);
-
+        popupLabel.setText(message);
         popup.show(stage);
 
-        double popupWidth = popupMessage.getWidth();
-        double popupHeight = popupMessage.getHeight();
+        double popupWidth = popupLabel.getWidth();
+        double popupHeight = popupLabel.getHeight();
 
         double x = stage.getX() + (stage.getWidth() - popupWidth) / 2;
         double y = stage.getY() + (stage.getHeight() - popupHeight) / 4;
 
-        popup.hide();
-        popup.show(stage, x, y);
+        popup.setX(x);
+        popup.setY(y);
 
         Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(seconds), e -> popup.hide()));
         timeline.setCycleCount(1);
