@@ -43,8 +43,8 @@ public class PDFConverter {
         }
     }
 
-    public static void toDocx(File file, Path directory) throws ConversionFailedException {
-        try (PDDocument document = Loader.loadPDF(file)) {
+    public static void toDocx(File selectedFile, Path outputDirectoryPath) throws ConversionFailedException {
+        try (PDDocument document = Loader.loadPDF(selectedFile)) {
 
         } catch (IOException e) {
             throw new ConversionFailedException("Failed to convert PDF to DOCX: " + e.getMessage());

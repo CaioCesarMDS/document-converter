@@ -4,9 +4,11 @@ import com.caiocesarmds.documentconverter.exceptions.PathSelectionException;
 import com.caiocesarmds.documentconverter.exceptions.InvalidFormatException;
 import com.caiocesarmds.documentconverter.exceptions.ConversionFailedException;
 
+import com.caiocesarmds.documentconverter.service.ImageConverter;
 import com.caiocesarmds.documentconverter.service.PDFConverter;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 import javafx.animation.KeyFrame;
@@ -104,20 +106,25 @@ public class Controller {
 
     private void convertFile(File selectedFile, Path outputDirectoryPath, String selectedFormat, String fileExtension) throws ConversionFailedException {
         try {
-            if (fileExtension.equals("pdf")) {
-                if (selectedFormat.equals("png") || selectedFormat.equals("jpg")) {
-                    PDFConverter.toImage(selectedFile, outputDirectoryPath, selectedFormat);
-                    showPopupNotification("PDF converted successfully!", 2);
-                } else if (selectedFormat.equals("docx")) {
-                    PDFConverter.toDocx(selectedFile, outputDirectoryPath);
-                } else {
-                    logger.warn("Unsupported format: {}", selectedFormat);
-                    showPopupNotification("File format not supported!", 2);
-                }
-            } else if (selectedFormat.equals("docx")) {
-                // TODO
+            switch (fileExtension) {
+                case "pdf":
+                    if (selectedFormat.equals("png") || selectedFormat.equals("jpg")) {
+                        PDFConverter.toImage(selectedFile, outputDirectoryPath, selectedFormat);
+                        showPopupNotification("PDF converted successfully!", 2);
+                    } else if (selectedFormat.equals("docx")) {
+                        PDFConverter.toDocx(selectedFile, outputDirectoryPath);
+                    } else {
+                        logger.warn("Unsupported format: {}", selectedFormat);
+                        showPopupNotification("File format not supported!", 2);
+                    }
+                    break;
+                case "jpg", "png":
+                    if (selectedFormat.equals("pdf")) {
+                        ImageConverter.toPDF(selectedFile, outputDirectoryPath);
+                        showPopupNotification("Image converted successfully!", 2);
+                    }
+                    break;
             }
-
         } catch (ConversionFailedException e) {
             logger.error("Unexpected error in conversion", e);
             showPopupNotification("Conversion Error: " + e.getMessage(), 4);
@@ -137,7 +144,7 @@ public class Controller {
             throw new PathSelectionException("No file selected for conversion.");
         }
 
-        if (outputDirectory == null) {
+        if (outputDirectory == null || !Files.exists(outputDirectory.toPath())) {
             throw new PathSelectionException("No directory selected for conversion.");
         }
 
@@ -154,13 +161,13 @@ public class Controller {
     private String getExtension(File file) throws InvalidFormatException {
         String fileName = file.getName();
 
-        int lastIndex = fileName.lastIndexOf(".");
+        int lastDotIndex = fileName.lastIndexOf(".");
 
-        if (lastIndex == -1) {
+        if (lastDotIndex == -1) {
             throw new InvalidFormatException("Unsupported file format.");
         }
 
-        return fileName.substring(lastIndex + 1);
+        return fileName.substring(lastDotIndex + 1);
     }
 
     private void showPopupNotification(String message, int seconds) {
