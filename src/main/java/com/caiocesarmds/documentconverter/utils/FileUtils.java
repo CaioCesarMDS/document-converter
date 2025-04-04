@@ -2,12 +2,12 @@ package com.caiocesarmds.documentconverter.utils;
 
 import com.caiocesarmds.documentconverter.exceptions.InvalidFormatException;
 
-import java.io.File;
+import java.nio.file.Path;
 
 public class FileUtils {
 
-    public static String getBaseName(File selectedFile) {
-        String fileName = selectedFile.getName();
+    public static String getBaseName(Path selectedFile) {
+        String fileName = (selectedFile.getFileName()).toString();
 
         int lastDotIndex = fileName.lastIndexOf(".");
 
@@ -18,8 +18,8 @@ public class FileUtils {
         return fileName.substring(0, lastDotIndex);
     }
 
-    public static String getExtension(File selectedFile) throws InvalidFormatException {
-        String fileName = selectedFile.getName();
+    public static String getExtension(Path selectedFile) throws InvalidFormatException {
+        String fileName = (selectedFile.getFileName()).toString();
 
         int lastDotIndex = fileName.lastIndexOf(".");
 

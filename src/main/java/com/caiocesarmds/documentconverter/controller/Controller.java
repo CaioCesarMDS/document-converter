@@ -13,7 +13,9 @@ import com.caiocesarmds.documentconverter.service.ImageConverter;
 import com.caiocesarmds.documentconverter.service.PDFConverter;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -35,8 +37,8 @@ public class Controller {
     private static final int DEFAULT_POPUP_DURATION = 3;
 
     private Stage stage;
-    private File selectedFile;
-    private File outputDirectory;
+    private Path selectedFile;
+    private Path outputDirectory;
 
     private final Popup popup = new Popup();
     private final Label popupLabel = new Label();
@@ -60,7 +62,7 @@ public class Controller {
         formatComboBox.getItems().addAll("PDF", "DOCX", "JPG", "PNG");
 
         String userHome = System.getProperty("user.home");
-        outputDirectory = new File(userHome, File.separator + "Downloads");
+        outputDirectory = Paths.get(userHome, "Downloads");
         directoryInput.setText(outputDirectory.toString());
     }
 
@@ -71,9 +73,9 @@ public class Controller {
     }
 
     private void setupListeners() {
-        fileInput.textProperty().addListener(((observableValue, oldValue, newValue) -> selectedFile = new File(fileInput.getText())));
+        fileInput.textProperty().addListener(((observableValue, oldValue, newValue) -> selectedFile = Paths.get(newValue)));
 
-        directoryInput.textProperty().addListener(((observableValue, oldValue, newValue) -> outputDirectory = new File(directoryInput.getText())));
+        directoryInput.textProperty().addListener(((observableValue, oldValue, newValue) -> outputDirectory = Paths.get(newValue)));
     }
 
     public void setStage(Stage stage) {
@@ -85,10 +87,11 @@ public class Controller {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Select a file");
 
-        selectedFile = fileChooser.showOpenDialog(stage);
+        File file = fileChooser.showOpenDialog(stage);
 
-        if (selectedFile != null) {
-            fileInput.setText(selectedFile.getAbsolutePath());
+        if (file != null) {
+            selectedFile = file.toPath();
+            fileInput.setText(selectedFile.toString());
         }
     }
 
@@ -99,8 +102,8 @@ public class Controller {
         File selectedDirectory = directoryChooser.showDialog(stage);
 
         if (selectedDirectory != null) {
-            outputDirectory = selectedDirectory;
-            directoryInput.setText(selectedDirectory.getAbsolutePath());
+            outputDirectory = selectedDirectory.toPath();
+            directoryInput.setText(outputDirectory.toString());
         }
     }
 
@@ -115,18 +118,21 @@ public class Controller {
 
             validateFormat(selectedFormat, fileExtension);
 
-            convertFile(selectedFile, outputDirectory.toPath(), selectedFormat, fileExtension);
+            convertFile(selectedFile, outputDirectory, selectedFormat, fileExtension);
 
         } catch (PathSelectionException | InvalidFormatException e) {
-            logger.warn("User action error: {}", e.getMessage(), e);
-            showPopupNotification(e.getMessage(), 4);
+            logger.warn("Validation error during file conversion: {}", e.getMessage());
+            showPopupNotification(e.getMessage(), DEFAULT_POPUP_DURATION + 1);
+        } catch (IOException e) {
+            logger.error("I/O error during file conversion: {}", e.getMessage());
+            showPopupNotification(e.getMessage(), DEFAULT_POPUP_DURATION);
         } catch (ConversionFailedException e) {
-            logger.error("Unexpected error in conversion: {} ", e.getMessage(), e);
-            showPopupNotification(e.getMessage(), 2);
+            logger.error("Conversion failed for file '{}': {}", selectedFile.getFileName(), e.getMessage());
+            showPopupNotification(e.getMessage(), DEFAULT_POPUP_DURATION);
         }
     }
 
-    private void convertFile(File selectedFile, Path outputDirectoryPath, String selectedFormat, String fileExtension) throws ConversionFailedException, InvalidFormatException {
+    private void convertFile(Path selectedFile, Path outputDirectoryPath, String selectedFormat, String fileExtension) throws ConversionFailedException, IOException, InvalidFormatException {
         switch (fileExtension) {
             case "pdf":
                 handlePdfConversion(selectedFile, outputDirectoryPath, selectedFormat);
@@ -139,20 +145,20 @@ public class Controller {
         }
     }
 
-    private void handlePdfConversion(File selectedFile, Path outputDirectoryPath, String selectedFormat) throws ConversionFailedException {
+    private void handlePdfConversion(Path selectedFile, Path outputDirectoryPath, String selectedFormat) throws ConversionFailedException, IOException {
         if (selectedFormat.equals("png") || selectedFormat.equals("jpg")) {
             PDFConverter.toImage(selectedFile, outputDirectoryPath, selectedFormat);
         } else if (selectedFormat.equals("docx")) {
             PDFConverter.toDocx(selectedFile, outputDirectoryPath);
         }
 
-        showPopupNotification("PDF converted successfully!", 2);
+        showPopupNotification("PDF converted successfully!", DEFAULT_POPUP_DURATION);
     }
 
-    private void handleImageConversion(String selectedFormat, Path outputDirectoryPath) throws ConversionFailedException {
+    private void handleImageConversion(String selectedFormat, Path outputDirectoryPath) throws ConversionFailedException, IOException {
         if (selectedFormat.equals("pdf")) {
             ImageConverter.handleConvert(selectedFile, outputDirectoryPath);
-            showPopupNotification("Image converted successfully!", 2);
+            showPopupNotification("Image converted successfully!", DEFAULT_POPUP_DURATION);
         }
     }
 

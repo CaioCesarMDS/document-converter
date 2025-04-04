@@ -4,7 +4,6 @@ import com.caiocesarmds.documentconverter.exceptions.ConversionFailedException;
 
 import static com.caiocesarmds.documentconverter.utils.FileUtils.getBaseName;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 
@@ -21,24 +20,22 @@ import javax.imageio.ImageIO;
 public class ImageConverter {
     private static final Logger logger = LogManager.getLogger(ImageConverter.class);
 
-    public static void handleConvert(File selectedFile, Path outputDirectoryPath) throws ConversionFailedException {
-        try {
-            if (isImageValid(selectedFile)) {
-                String outputFileName = getBaseName(selectedFile) + ".pdf";
-                Path outputFilePath = outputDirectoryPath.resolve(outputFileName);
-                imageToPDF(selectedFile, outputFilePath);
-            }
-        } catch (IOException e) {
-            logger.error("Failed to convert image to PDF: {}", selectedFile.getAbsolutePath(), e);
-            throw new ConversionFailedException("Failed to convert image to PDF: " + e.getMessage());
+    public static void handleConvert(Path selectedFile, Path outputDirectoryPath) throws ConversionFailedException, IOException {
+        if (isImageValid(selectedFile)) {
+            String outputFileName = getBaseName(selectedFile) + ".pdf";
+            Path outputFilePath = outputDirectoryPath.resolve(outputFileName);
+            imageToPDF(selectedFile, outputFilePath);
         }
     }
 
-    private static void imageToPDF(File selectedFile, Path outputFilePath) throws IOException {
+    private static void imageToPDF(Path selectedFile, Path outputFilePath) throws IOException {
+        String fileName = selectedFile.getFileName().toString();
+
         logger.info("Starting image to PDF conversion - File: {}",
-                selectedFile.getName());
+                fileName);
+
         try (PDDocument document = new PDDocument()) {
-            PDImageXObject pdImage = PDImageXObject.createFromFile(selectedFile.getAbsolutePath(), document);
+            PDImageXObject pdImage = PDImageXObject.createFromFile(selectedFile.toString(), document);
 
             PDPage page = new PDPage(new PDRectangle(pdImage.getWidth(), pdImage.getHeight()));
             document.addPage(page);
@@ -49,11 +46,14 @@ public class ImageConverter {
 
             document.save(outputFilePath.toFile());
 
-            logger.info("Conversion completed successfully.");
+            logger.info("Conversion completed successfully. - Path: {}", outputFilePath);
         }
     }
 
-    private static boolean isImageValid(File selectedFile) throws IOException {
-        return ImageIO.read(selectedFile) != null;
+    private static boolean isImageValid(Path selectedFile) throws ConversionFailedException, IOException {
+        if (ImageIO.read(selectedFile.toFile()) == null) {
+            throw new ConversionFailedException("The image is not valid");
+        }
+        return true;
     }
 }
