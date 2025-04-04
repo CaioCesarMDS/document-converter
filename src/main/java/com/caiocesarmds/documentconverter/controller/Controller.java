@@ -4,11 +4,15 @@ import com.caiocesarmds.documentconverter.exceptions.PathSelectionException;
 import com.caiocesarmds.documentconverter.exceptions.InvalidFormatException;
 import com.caiocesarmds.documentconverter.exceptions.ConversionFailedException;
 
+import static com.caiocesarmds.documentconverter.utils.FileUtils.getExtension;
+import static com.caiocesarmds.documentconverter.utils.ValidationUtils.validateFile;
+import static com.caiocesarmds.documentconverter.utils.ValidationUtils.validateFormat;
+import static com.caiocesarmds.documentconverter.utils.ValidationUtils.validatePath;
+
 import com.caiocesarmds.documentconverter.service.ImageConverter;
 import com.caiocesarmds.documentconverter.service.PDFConverter;
 
 import java.io.File;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 import javafx.animation.KeyFrame;
@@ -28,6 +32,7 @@ import org.apache.logging.log4j.Logger;
 
 public class Controller {
     private static final Logger logger = LogManager.getLogger(Controller.class);
+    private static final int DEFAULT_POPUP_DURATION = 3;
 
     private Stage stage;
     private File selectedFile;
@@ -46,15 +51,29 @@ public class Controller {
     public void initialize() {
         logger.info("Initializing Document Converter");
 
+        configureInitialSetup();
+        setupPopup();
+        setupListeners();
+    }
+
+    private void configureInitialSetup() {
         formatComboBox.getItems().addAll("PDF", "DOCX", "JPG", "PNG");
 
         String userHome = System.getProperty("user.home");
         outputDirectory = new File(userHome, File.separator + "Downloads");
         directoryInput.setText(outputDirectory.toString());
+    }
 
+    private void setupPopup() {
         popup.getContent().add(popupLabel);
         popupLabel.getStyleClass().add("popup-notification");
         popup.setAutoHide(true);
+    }
+
+    private void setupListeners() {
+        fileInput.textProperty().addListener(((observableValue, oldValue, newValue) -> selectedFile = new File(fileInput.getText())));
+
+        directoryInput.textProperty().addListener(((observableValue, oldValue, newValue) -> outputDirectory = new File(directoryInput.getText())));
     }
 
     public void setStage(Stage stage) {
@@ -88,46 +107,52 @@ public class Controller {
     @FXML
     public void handleFileConversion() {
         try {
+            validateFile(selectedFile);
+            validatePath(outputDirectory);
+
             String selectedFormat = getSelectedFormat();
             String fileExtension = getExtension(selectedFile);
 
-            validateInputs(selectedFormat, fileExtension);
+            validateFormat(selectedFormat, fileExtension);
 
             convertFile(selectedFile, outputDirectory.toPath(), selectedFormat, fileExtension);
 
         } catch (PathSelectionException | InvalidFormatException e) {
-            logger.warn("User action error: {}", e.getMessage());
+            logger.warn("User action error: {}", e.getMessage(), e);
             showPopupNotification(e.getMessage(), 4);
         } catch (ConversionFailedException e) {
-            logger.error("Unexpected error in conversion", e);
+            logger.error("Unexpected error in conversion: {} ", e.getMessage(), e);
             showPopupNotification(e.getMessage(), 2);
         }
     }
 
-    private void convertFile(File selectedFile, Path outputDirectoryPath, String selectedFormat, String fileExtension) throws ConversionFailedException {
-        try {
-            switch (fileExtension) {
-                case "pdf":
-                    if (selectedFormat.equals("png") || selectedFormat.equals("jpg")) {
-                        PDFConverter.toImage(selectedFile, outputDirectoryPath, selectedFormat);
-                        showPopupNotification("PDF converted successfully!", 2);
-                    } else if (selectedFormat.equals("docx")) {
-                        PDFConverter.toDocx(selectedFile, outputDirectoryPath);
-                    } else {
-                        logger.warn("Unsupported format: {}", selectedFormat);
-                        showPopupNotification("File format not supported!", 2);
-                    }
-                    break;
-                case "jpg", "png":
-                    if (selectedFormat.equals("pdf")) {
-                        ImageConverter.toPDF(selectedFile, outputDirectoryPath);
-                        showPopupNotification("Image converted successfully!", 2);
-                    }
-                    break;
-            }
-        } catch (ConversionFailedException e) {
-            logger.error("Unexpected error in conversion", e);
-            showPopupNotification("Conversion Error: " + e.getMessage(), 4);
+    private void convertFile(File selectedFile, Path outputDirectoryPath, String selectedFormat, String fileExtension) throws ConversionFailedException, InvalidFormatException {
+        switch (fileExtension) {
+            case "pdf":
+                handlePdfConversion(selectedFile, outputDirectoryPath, selectedFormat);
+                break;
+            case "jpg", "png":
+                handleImageConversion(selectedFormat, outputDirectoryPath);
+                break;
+            default:
+                throw new InvalidFormatException("Unsupported file type: " + fileExtension);
+        }
+    }
+
+    private void handlePdfConversion(File selectedFile, Path outputDirectoryPath, String selectedFormat) throws ConversionFailedException {
+        if (selectedFormat.equals("png") || selectedFormat.equals("jpg")) {
+            PDFConverter.toImage(selectedFile, outputDirectoryPath, selectedFormat);
+        } else if (selectedFormat.equals("docx")) {
+            PDFConverter.toDocx(selectedFile, outputDirectoryPath);
+        }
+
+        showPopupNotification("PDF converted successfully!", 2);
+    }
+
+    private void handleImageConversion(String selectedFormat, Path outputDirectoryPath) throws ConversionFailedException {
+        if (selectedFormat.equals("pdf")) {
+            ImageConverter.handleConvert(selectedFile, outputDirectoryPath);
+            showPopupNotification("Image converted successfully!", 2);
         }
     }
 
@@ -139,41 +164,18 @@ public class Controller {
         return selectedFormat.toLowerCase();
     }
 
-    private void validateInputs(String selectedFormat, String fileExtension) throws InvalidFormatException, PathSelectionException {
-        if (selectedFile == null) {
-            throw new PathSelectionException("No file selected for conversion.");
-        }
-
-        if (outputDirectory == null || !Files.exists(outputDirectory.toPath())) {
-            throw new PathSelectionException("No directory selected for conversion.");
-        }
-
-        if (selectedFormat == null) {
-            throw new InvalidFormatException("No format selected for conversion.");
-        }
-
-        if (fileExtension.equals(selectedFormat)) {
-            logger.info("User tried to convert {} but it's already in the desired format.", selectedFile.getName());
-            throw new InvalidFormatException("The file is already in the desired format.");
-        }
-    }
-
-    private String getExtension(File file) throws InvalidFormatException {
-        String fileName = file.getName();
-
-        int lastDotIndex = fileName.lastIndexOf(".");
-
-        if (lastDotIndex == -1) {
-            throw new InvalidFormatException("Unsupported file format.");
-        }
-
-        return fileName.substring(lastDotIndex + 1);
-    }
-
     private void showPopupNotification(String message, int seconds) {
         popupLabel.setText(message);
         popup.show(stage);
 
+        setPopupPosition();
+
+        Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(seconds), e -> popup.hide()));
+        timeline.setCycleCount(1);
+        timeline.play();
+    }
+
+    private void setPopupPosition() {
         double popupWidth = popupLabel.getWidth();
         double popupHeight = popupLabel.getHeight();
 
@@ -182,9 +184,5 @@ public class Controller {
 
         popup.setX(x);
         popup.setY(y);
-
-        Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(seconds), e -> popup.hide()));
-        timeline.setCycleCount(1);
-        timeline.play();
     }
 }
