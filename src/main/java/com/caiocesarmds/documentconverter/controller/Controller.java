@@ -14,11 +14,13 @@ import com.caiocesarmds.documentconverter.service.PDFConverter;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.stage.Stage;
 import javafx.stage.FileChooser;
@@ -59,11 +61,13 @@ public class Controller {
     }
 
     private void configureInitialSetup() {
-        formatComboBox.getItems().addAll("PDF", "DOCX", "JPG", "PNG");
+        Platform.runLater(() -> fileInput.getParent().requestFocus());
 
         String userHome = System.getProperty("user.home");
         outputDirectory = Paths.get(userHome, "Downloads");
         directoryInput.setText(outputDirectory.toString());
+
+        formatComboBox.getItems().addAll("PDF", "DOCX", "JPG", "PNG");
     }
 
     private void setupPopup() {
@@ -73,9 +77,27 @@ public class Controller {
     }
 
     private void setupListeners() {
-        fileInput.textProperty().addListener(((observableValue, oldValue, newValue) -> selectedFile = Paths.get(newValue)));
+        fileInput.focusedProperty().addListener((obs, oldValue, newValue) -> {
+            if (!newValue) {
+                Path filePath = Paths.get(fileInput.getText());
+                if (!Files.exists(filePath) || !Files.isRegularFile(filePath)) {
+                    showPopupNotification("The selected file does not exist.", DEFAULT_POPUP_DURATION);
+                } else {
+                    selectedFile = filePath;
+                }
+            }
+        });
 
-        directoryInput.textProperty().addListener(((observableValue, oldValue, newValue) -> outputDirectory = Paths.get(newValue)));
+        directoryInput.focusedProperty().addListener((obs, oldValue, newValue) -> {
+            if (!newValue) {
+                Path dirPath = Paths.get(directoryInput.getText());
+                if (!Files.exists(dirPath) || !Files.isDirectory(dirPath)) {
+                    showPopupNotification("Please select a valid output directory.", DEFAULT_POPUP_DURATION);
+                } else {
+                    outputDirectory = dirPath;
+                }
+            }
+        });
     }
 
     public void setStage(Stage stage) {
