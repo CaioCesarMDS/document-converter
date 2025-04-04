@@ -9,31 +9,31 @@ import java.nio.file.Path;
 public class ValidationUtils {
     public static void validateFile(Path selectedFile) throws PathSelectionException {
         if (selectedFile == null || !Files.exists(selectedFile)) {
-            throw new PathSelectionException("No file selected for conversion.");
+            throw new PathSelectionException("The selected file does not exist.");
         }
     }
 
     public static void validatePath(Path outputDirectory) throws PathSelectionException {
         if (outputDirectory == null) {
-            throw new PathSelectionException("No directory selected for conversion.");
+            throw new PathSelectionException("Please select a valid output directory.");
         }
 
         if (!Files.exists(outputDirectory)) {
-            throw new PathSelectionException("Output directory does not exist: " + outputDirectory);
+            throw new PathSelectionException("The selected output directory does not exist: " + outputDirectory);
         }
 
         if (!Files.isDirectory(outputDirectory)) {
-            throw new PathSelectionException("Output path must be a directory");
+            throw new PathSelectionException("The selected path must be a directory.");
         }
     }
 
     public static void validateFormat(String selectedFormat, String fileExtension) throws InvalidFormatException {
         if (selectedFormat == null || selectedFormat.isEmpty()) {
-            throw new InvalidFormatException("No format selected for conversion.");
+            throw new InvalidFormatException("No output format was selected.");
         }
 
         if (selectedFormat.equalsIgnoreCase(fileExtension)) {
-            throw new InvalidFormatException("File already in the selected format.");
+            throw new InvalidFormatException("The file is already in the selected format.");
         }
     }
 }
