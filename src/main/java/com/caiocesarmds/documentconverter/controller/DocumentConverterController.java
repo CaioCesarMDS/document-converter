@@ -4,17 +4,11 @@ import com.caiocesarmds.documentconverter.exceptions.PathSelectionException;
 import com.caiocesarmds.documentconverter.exceptions.InvalidFormatException;
 import com.caiocesarmds.documentconverter.exceptions.ConversionFailedException;
 
-import static com.caiocesarmds.documentconverter.utils.FileUtils.getExtension;
-import static com.caiocesarmds.documentconverter.utils.ValidationUtils.validateFile;
-import static com.caiocesarmds.documentconverter.utils.ValidationUtils.validateFormat;
-import static com.caiocesarmds.documentconverter.utils.ValidationUtils.validatePath;
-
-import com.caiocesarmds.documentconverter.service.ImageConverter;
-import com.caiocesarmds.documentconverter.service.PDFConverter;
+import com.caiocesarmds.documentconverter.model.FileFormat;
+import com.caiocesarmds.documentconverter.service.ConversionService;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -34,9 +28,10 @@ import javafx.util.Duration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class Controller {
-    private static final Logger logger = LogManager.getLogger(Controller.class);
+public class DocumentConverterController {
+    private static final Logger logger = LogManager.getLogger(DocumentConverterController.class);
     private static final int DEFAULT_POPUP_DURATION = 3;
+    private final ConversionService conversionService = new ConversionService();
 
     private Stage stage;
     private Path selectedFile;
@@ -46,18 +41,22 @@ public class Controller {
     private final Label popupLabel = new Label();
 
     @FXML
-    private ComboBox<String> formatComboBox;
-    @FXML
     private TextField fileInput;
     @FXML
     private TextField directoryInput;
+    @FXML
+    private ComboBox<FileFormat> formatComboBox;
+
+    public void setStage(Stage stage) {
+        this.stage = stage;
+    }
 
     public void initialize() {
         logger.info("Initializing Document Converter");
 
         configureInitialSetup();
-        setupPopup();
         setupListeners();
+        setupPopup();
     }
 
     private void configureInitialSetup() {
@@ -67,41 +66,27 @@ public class Controller {
         outputDirectory = Paths.get(userHome, "Downloads");
         directoryInput.setText(outputDirectory.toString());
 
-        formatComboBox.getItems().addAll("PDF", "DOCX", "JPG", "PNG");
+        formatComboBox.getItems().addAll(FileFormat.values());
+    }
+
+    private void setupListeners() {
+        fileInput.focusedProperty().addListener((obs, oldValue, newValue) -> {
+            if (!newValue) {
+                selectedFile = Paths.get(fileInput.getText());
+            }
+        });
+
+        directoryInput.focusedProperty().addListener((obs, oldValue, newValue) -> {
+            if (!newValue) {
+                outputDirectory = Paths.get(directoryInput.getText());
+            }
+        });
     }
 
     private void setupPopup() {
         popup.getContent().add(popupLabel);
         popupLabel.getStyleClass().add("popup-notification");
         popup.setAutoHide(true);
-    }
-
-    private void setupListeners() {
-        fileInput.focusedProperty().addListener((obs, oldValue, newValue) -> {
-            if (!newValue) {
-                Path filePath = Paths.get(fileInput.getText());
-                if (!Files.exists(filePath) || !Files.isRegularFile(filePath)) {
-                    showPopupNotification("The selected file does not exist.", DEFAULT_POPUP_DURATION);
-                } else {
-                    selectedFile = filePath;
-                }
-            }
-        });
-
-        directoryInput.focusedProperty().addListener((obs, oldValue, newValue) -> {
-            if (!newValue) {
-                Path dirPath = Paths.get(directoryInput.getText());
-                if (!Files.exists(dirPath) || !Files.isDirectory(dirPath)) {
-                    showPopupNotification("Please select a valid output directory.", DEFAULT_POPUP_DURATION);
-                } else {
-                    outputDirectory = dirPath;
-                }
-            }
-        });
-    }
-
-    public void setStage(Stage stage) {
-        this.stage = stage;
     }
 
     @FXML
@@ -132,16 +117,10 @@ public class Controller {
     @FXML
     public void handleFileConversion() {
         try {
-            validateFile(selectedFile);
-            validatePath(outputDirectory);
-
             String selectedFormat = getSelectedFormat();
-            String fileExtension = getExtension(selectedFile);
 
-            validateFormat(selectedFormat, fileExtension);
-
-            convertFile(selectedFile, outputDirectory, selectedFormat, fileExtension);
-
+            conversionService.convertFile(selectedFile, outputDirectory, selectedFormat);
+            showPopupNotification("Conversion completed successfully!", DEFAULT_POPUP_DURATION);
         } catch (PathSelectionException | InvalidFormatException e) {
             logger.warn("Validation error during file conversion: {}", e.getMessage());
             showPopupNotification(e.getMessage(), DEFAULT_POPUP_DURATION + 1);
@@ -154,42 +133,12 @@ public class Controller {
         }
     }
 
-    private void convertFile(Path selectedFile, Path outputDirectoryPath, String selectedFormat, String fileExtension) throws ConversionFailedException, IOException, InvalidFormatException {
-        switch (fileExtension) {
-            case "pdf":
-                handlePdfConversion(selectedFile, outputDirectoryPath, selectedFormat);
-                break;
-            case "jpg", "png":
-                handleImageConversion(selectedFormat, outputDirectoryPath);
-                break;
-            default:
-                throw new InvalidFormatException("Unsupported file type: " + fileExtension);
-        }
-    }
-
-    private void handlePdfConversion(Path selectedFile, Path outputDirectoryPath, String selectedFormat) throws ConversionFailedException, IOException {
-        if (selectedFormat.equals("png") || selectedFormat.equals("jpg")) {
-            PDFConverter.toImage(selectedFile, outputDirectoryPath, selectedFormat);
-        } else if (selectedFormat.equals("docx")) {
-            PDFConverter.toDocx(selectedFile, outputDirectoryPath);
-        }
-
-        showPopupNotification("PDF converted successfully!", DEFAULT_POPUP_DURATION);
-    }
-
-    private void handleImageConversion(String selectedFormat, Path outputDirectoryPath) throws ConversionFailedException, IOException {
-        if (selectedFormat.equals("pdf")) {
-            ImageConverter.handleConvert(selectedFile, outputDirectoryPath);
-            showPopupNotification("Image converted successfully!", DEFAULT_POPUP_DURATION);
-        }
-    }
-
     private String getSelectedFormat() throws InvalidFormatException {
-        String selectedFormat = formatComboBox.getSelectionModel().getSelectedItem();
+        String selectedFormat = formatComboBox.getSelectionModel().getSelectedItem().getExtension();
         if (selectedFormat == null) {
             throw new InvalidFormatException("No format selected for conversion.");
         }
-        return selectedFormat.toLowerCase();
+        return selectedFormat;
     }
 
     private void showPopupNotification(String message, int seconds) {

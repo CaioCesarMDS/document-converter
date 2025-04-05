@@ -7,7 +7,9 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.layout.HBox?>
 
-<VBox fx:controller="com.caiocesarmds.documentconverter.controller.Controller" styleClass="container" alignment="CENTER" spacing="200"
+<VBox fx:controller="com.caiocesarmds.documentconverter.controller.DocumentConverterController"
+      styleClass="container"
+      alignment="CENTER" spacing="200"
       prefHeight="400.0" prefWidth="600.0" stylesheets="@styles.css"
       xmlns="http://javafx.com/javafx/22" xmlns:fx="http://javafx.com/fxml/1">
 

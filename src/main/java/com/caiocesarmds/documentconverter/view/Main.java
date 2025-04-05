@@ -1,7 +1,6 @@
 package com.caiocesarmds.documentconverter.view;
 
-
-import com.caiocesarmds.documentconverter.controller.Controller;
+import com.caiocesarmds.documentconverter.controller.DocumentConverterController;
 
 import java.io.IOException;
 
@@ -27,7 +26,7 @@ public class Main extends Application {
             stage.setResizable(false);
             stage.setScene(scene);
 
-            Controller controller = loader.getController();
+            DocumentConverterController controller = loader.getController();
             controller.setStage(stage);
 
             stage.show();
