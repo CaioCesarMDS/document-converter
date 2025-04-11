@@ -1,8 +1,11 @@
-package com.caiocesarmds.documentconverter.service;
+package com.caiocesarmds.documentconverter.service.impl;
 
 import com.caiocesarmds.documentconverter.exceptions.ConversionFailedException;
 import com.caiocesarmds.documentconverter.exceptions.InvalidFormatException;
 import com.caiocesarmds.documentconverter.exceptions.PathSelectionException;
+import com.caiocesarmds.documentconverter.model.ConversionRequest;
+import com.caiocesarmds.documentconverter.model.ConversionResponse;
+import com.caiocesarmds.documentconverter.service.DocumentConversionService;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -10,26 +13,32 @@ import java.nio.file.Path;
 import static com.caiocesarmds.documentconverter.utils.FileUtils.getExtension;
 import static com.caiocesarmds.documentconverter.utils.ValidationUtils.*;
 
-public class ConversionService {
+public class ConversionService implements DocumentConversionService {
 
-    public void convertFile(Path selectedFile, Path outputDirectory, String selectedFormat) throws ConversionFailedException, IOException, InvalidFormatException, PathSelectionException {
-        validateFile(selectedFile);
-        validatePath(outputDirectory);
+    @Override
+    public ConversionResponse convert(ConversionRequest request) throws ConversionFailedException, {
+        try {
+            validateFile(request.getSelectedFile());
+            validatePath(request.getOutputDirectory());
 
-        String fileExtension = getExtension(selectedFile);
+            String fileExtension = getExtension(selectedFile);
 
-        validateFormat(selectedFormat, fileExtension);
+            validateFormat(selectedFormat, fileExtension);
 
-        switch (fileExtension) {
-            case "pdf":
-                handlePdfConversion(selectedFile, outputDirectory, selectedFormat);
-                break;
-            case "jpg", "png":
-                handleImageConversion(selectedFile, outputDirectory, selectedFormat);
-                break;
-            default:
-                throw new InvalidFormatException("Unsupported file type: " + fileExtension);
+            switch (fileExtension) {
+                case "pdf":
+                    handlePdfConversion(selectedFile, outputDirectory, selectedFormat);
+                    break;
+                case "jpg", "png":
+                    handleImageConversion(selectedFile, outputDirectory, selectedFormat);
+                    break;
+                default:
+                    throw new InvalidFormatException("Unsupported file type: " + fileExtension);
+            }
+        } catch (InvalidFormatException | PathSelectionException e) {
+            System.out.println("erro: " + e);
         }
+
     }
 
     private void handlePdfConversion(Path selectedFile, Path outputDirectory, String selectedFormat) throws ConversionFailedException, IOException {
