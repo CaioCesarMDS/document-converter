@@ -1,14 +1,14 @@
 package com.caiocesarmds.documentconverter.utils;
 
-import com.caiocesarmds.documentconverter.exceptions.PathSelectionException;
-import com.caiocesarmds.documentconverter.exceptions.InvalidFormatException;
+import com.caiocesarmds.documentconverter.exceptions.validation.PathSelectionException;
+import com.caiocesarmds.documentconverter.exceptions.validation.InvalidFormatException;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class ValidationUtils {
     public static void validateFile(Path selectedFile) throws PathSelectionException {
-        if (selectedFile == null || !Files.exists(selectedFile)) {
+        if (selectedFile == null || !Files.exists(selectedFile) || !Files.isRegularFile(selectedFile)) {
             throw new PathSelectionException("The selected file does not exist.");
         }
     }

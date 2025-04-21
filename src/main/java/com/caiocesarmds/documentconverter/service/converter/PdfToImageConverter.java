@@ -1,4 +1,11 @@
-package com.caiocesarmds.documentconverter.service.impl;
+package com.caiocesarmds.documentconverter.service.converter;
+
+import com.caiocesarmds.documentconverter.exceptions.system.ConversionFailedException;
+
+import com.caiocesarmds.documentconverter.model.request.ConversionRequest;
+import com.caiocesarmds.documentconverter.model.response.ConversionResponse;
+import com.caiocesarmds.documentconverter.model.response.MultiFileConversionResponse;
+import com.caiocesarmds.documentconverter.service.interfaces.SpecificConverter;
 
 import static com.caiocesarmds.documentconverter.utils.FileUtils.getBaseName;
 
@@ -10,12 +17,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.imageio.ImageIO;
-
-import com.caiocesarmds.documentconverter.exceptions.ConversionFailedException;
-import com.caiocesarmds.documentconverter.model.ConversionRequest;
-import com.caiocesarmds.documentconverter.model.ConversionResponse;
-import com.caiocesarmds.documentconverter.model.MultiFileConversionResponse;
-import com.caiocesarmds.documentconverter.service.SpecificConverter;
 
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -74,4 +75,3 @@ public class PdfToImageConverter implements SpecificConverter {
         return imagePaths;
     }
 }
-

@@ -1,57 +1,47 @@
-package com.caiocesarmds.documentconverter.service.impl;
+package com.caiocesarmds.documentconverter.service;
 
-import com.caiocesarmds.documentconverter.exceptions.ConversionFailedException;
-import com.caiocesarmds.documentconverter.exceptions.InvalidFormatException;
-import com.caiocesarmds.documentconverter.exceptions.PathSelectionException;
-import com.caiocesarmds.documentconverter.model.ConversionRequest;
-import com.caiocesarmds.documentconverter.model.ConversionResponse;
-import com.caiocesarmds.documentconverter.service.DocumentConversionService;
+import com.caiocesarmds.documentconverter.exceptions.system.ConversionFailedException;
+import com.caiocesarmds.documentconverter.exceptions.validation.InvalidFormatException;
+import com.caiocesarmds.documentconverter.exceptions.validation.PathSelectionException;
+
+import com.caiocesarmds.documentconverter.model.request.ConversionRequest;
+import com.caiocesarmds.documentconverter.model.response.ConversionResponse;
+import com.caiocesarmds.documentconverter.service.interfaces.DocumentConversionService;
+import com.caiocesarmds.documentconverter.service.interfaces.SpecificConverter;
 
 import java.io.IOException;
-import java.nio.file.Path;
+import java.util.List;
 
-import static com.caiocesarmds.documentconverter.utils.FileUtils.getExtension;
 import static com.caiocesarmds.documentconverter.utils.ValidationUtils.*;
 
 public class ConversionService implements DocumentConversionService {
+    private final List<SpecificConverter> converters;
+
+    public ConversionService(List<SpecificConverter> converters) {
+        this.converters = converters;
+    }
 
     @Override
-    public ConversionResponse convert(ConversionRequest request) throws ConversionFailedException, {
+    public ConversionResponse convert(ConversionRequest request) throws ConversionFailedException {
+
         try {
-            validateFile(request.getSelectedFile());
-            validatePath(request.getOutputDirectory());
+            validateInputs(request);
 
-            String fileExtension = getExtension(selectedFile);
-
-            validateFormat(selectedFormat, fileExtension);
-
-            switch (fileExtension) {
-                case "pdf":
-                    handlePdfConversion(selectedFile, outputDirectory, selectedFormat);
-                    break;
-                case "jpg", "png":
-                    handleImageConversion(selectedFile, outputDirectory, selectedFormat);
-                    break;
-                default:
-                    throw new InvalidFormatException("Unsupported file type: " + fileExtension);
-            }
+            return converters.stream()
+                    .filter(converter -> converter.supports(request))
+                    .findFirst()
+                    .orElseThrow(() -> new ConversionFailedException("No suitable converter found for the given request."))
+                    .convert(request);
         } catch (InvalidFormatException | PathSelectionException e) {
-            System.out.println("erro: " + e);
-        }
-
-    }
-
-    private void handlePdfConversion(Path selectedFile, Path outputDirectory, String selectedFormat) throws ConversionFailedException, IOException {
-        if (selectedFormat.equals("png") || selectedFormat.equals("jpg")) {
-            PDFConverter.toImage(selectedFile, outputDirectory, selectedFormat);
-        } else if (selectedFormat.equals("docx")) {
-            PDFConverter.toDocx(selectedFile, outputDirectory);
+            throw new ConversionFailedException("Failed to convert file: " + e.getMessage());
+        } catch (IOException e) {
+            throw new ConversionFailedException();
         }
     }
 
-    private void handleImageConversion(Path selectedFile, Path outputDirectory, String selectedFormat) throws ConversionFailedException, IOException {
-        if (selectedFormat.equals("pdf")) {
-            ImageConverter.handleConvert(selectedFile, outputDirectory);
-        }
+    private void validateInputs(ConversionRequest request) throws InvalidFormatException, PathSelectionException {
+        validateFile(request.getSelectedFile());
+        validatePath(request.getOutputDirectory());
+        validateFormat(request.getTargetFormat(), request.getFileExtension());
     }
 }

@@ -1,6 +1,6 @@
 package com.caiocesarmds.documentconverter.utils;
 
-import com.caiocesarmds.documentconverter.exceptions.InvalidFormatException;
+import com.caiocesarmds.documentconverter.exceptions.validation.InvalidFormatException;
 
 import java.nio.file.Path;
 
@@ -28,5 +28,10 @@ public class FileUtils {
         }
 
         return fileName.substring(lastDotIndex + 1);
+    }
+
+    public static Path generateOutputPath(Path inputFile, Path outputDirectory, String newExtension) {
+        String fileName = getBaseName(inputFile) + "." + newExtension;
+        return outputDirectory.resolve(fileName);
     }
 }

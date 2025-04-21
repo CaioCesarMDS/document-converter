@@ -1,9 +1,7 @@
-package com.caiocesarmds.documentconverter.exceptions;
+package com.caiocesarmds.documentconverter.exceptions.validation;
 
 public class InvalidFormatException extends Exception {
-    public InvalidFormatException() {
-
-    }
+    public InvalidFormatException() {}
 
     public InvalidFormatException(String message) {
         super(message);
